@@ -78,7 +78,18 @@ export default function DrawingPage() {
 
   const handleNewDrawing = () => {
     if (isSelectionMode) return;
-    router.push('../components/DrawingCanvas');
+
+    console.log('Attempting navigation...');
+    console.log('Router object:', router);
+
+    // Add a check to see if the router object exists and has the push method
+    if (router && typeof router.push === 'function') {
+        console.log('Router seems valid, pushing to /drawingCanvas/index');
+        router.push('/drawingCanvas/index');
+    } else {
+        console.error('Router object is invalid or not ready!', router);
+        Alert.alert('Navigation Error', 'Could not navigate. Router is not available.');
+    }
   };
 
   const handleDeleteSelected = async () => {
