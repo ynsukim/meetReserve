@@ -4,6 +4,14 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect, useCallback, useMemo, SetStateAction } from 'react';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type RootStackParamList = {
+  DrawingCanvas: undefined;
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -24,7 +32,11 @@ type GridItemType = Drawing | { id: 'new-drawing-item'; uri: ''; timestamp: numb
 // Placeholder for the "New Drawing" button
 const newDrawingPlaceholder: GridItemType = { id: 'new-drawing-item', uri: '', timestamp: -1 };
 
-export default function DrawingPage() {
+interface DrawingPadProps {
+  setSelectedMenu: (menu: string) => void;
+}
+
+export default function DrawingPage({ setSelectedMenu }: DrawingPadProps) {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [savedDrawings, setSavedDrawings] = useState<Drawing[]>([]);
@@ -32,6 +44,7 @@ export default function DrawingPage() {
   const [containerWidth, setContainerWidth] = useState(0); // State for measured width
   const [isSelectionMode, setIsSelectionMode] = useState(false); // State for selection mode
   const [selectedDrawings, setSelectedDrawings] = useState<Set<string>>(new Set()); // State for selected drawing IDs
+  const navigation = useNavigation<NavigationProp>();
 
   useEffect(() => {
     loadSavedDrawings();
@@ -78,18 +91,7 @@ export default function DrawingPage() {
 
   const handleNewDrawing = () => {
     if (isSelectionMode) return;
-
-    console.log('Attempting navigation...');
-    console.log('Router object:', router);
-
-    // Add a check to see if the router object exists and has the push method
-    if (router && typeof router.push === 'function') {
-        console.log('Router seems valid, pushing to /drawingCanvas/index');
-        router.push('/drawingCanvas/index');
-    } else {
-        console.error('Router object is invalid or not ready!', router);
-        Alert.alert('Navigation Error', 'Could not navigate. Router is not available.');
-    }
+    setSelectedMenu('drawingCanvas');
   };
 
   const handleDeleteSelected = async () => {

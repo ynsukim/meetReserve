@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, StatusBar, Platform, Animated } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import Navigation from './components/Navigation';
 import ReserveRoom from './app/ReserveRoom';
@@ -9,12 +11,15 @@ import CafeteriaMenu from './app/CafeteriaMenu';
 import BusSchedule from './app/BusSchedule';
 import DrawingPad from './app/DrawingPad';
 import Chatbot from './app/Chatbot';
+import DrawingCanvas from './app/drawingCanvas/index';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const NAV_WIDTH = SCREEN_WIDTH * 0.25;
 
+const Stack = createNativeStackNavigator();
+
 const App = () => {
-  const [selectedMenu, setSelectedMenu] = useState('reserve');
+  const [selectedMenu, setSelectedMenu] = useState<string>('reserve');
   const contentMarginLeft = new Animated.Value(NAV_WIDTH);
 
   useEffect(() => {
@@ -33,7 +38,9 @@ const App = () => {
       case 'bus':
         return <BusSchedule />;
       case 'drawing':
-        return <DrawingPad />;
+        return <DrawingPad setSelectedMenu={setSelectedMenu} />;
+      case 'drawingCanvas':
+        return <DrawingCanvas setSelectedMenu={setSelectedMenu} />;
       case 'chatbot':
         return <Chatbot />;
       default:
@@ -42,28 +49,30 @@ const App = () => {
   };
 
   return (
-    <SafeAreaProvider>
-      <ExpoStatusBar style="auto" />
-      <View style={styles.container}>
-        <Navigation 
-          onMenuSelect={setSelectedMenu}
-          selectedMenu={selectedMenu}
-          onToggleExpand={(isExpanded: boolean) => {
-            Animated.timing(contentMarginLeft, {
-              toValue: isExpanded ?  120 : NAV_WIDTH,
-              duration: 300,
-              useNativeDriver: false,
-            }).start();
-          }}
-        />
-        <Animated.View style={[
-          styles.content,
-          { marginLeft: contentMarginLeft }
-        ]}>
-          {renderScreen()}
-        </Animated.View>
-      </View>
-    </SafeAreaProvider>
+    <NavigationContainer>
+      <SafeAreaProvider>
+        <ExpoStatusBar style="auto" />
+        <View style={styles.container}>
+          <Navigation 
+            onMenuSelect={setSelectedMenu}
+            selectedMenu={selectedMenu}
+            onToggleExpand={(isExpanded: boolean) => {
+              Animated.timing(contentMarginLeft, {
+                toValue: isExpanded ?  120 : NAV_WIDTH,
+                duration: 300,
+                useNativeDriver: false,
+              }).start();
+            }}
+          />
+          <Animated.View style={[
+            styles.content,
+            { marginLeft: contentMarginLeft }
+          ]}>
+            {renderScreen()}
+          </Animated.View>
+        </View>
+      </SafeAreaProvider>
+    </NavigationContainer>
   );
 };
 
@@ -79,4 +88,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+export default App; 

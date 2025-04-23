@@ -12,7 +12,7 @@ const BusSchedule = () => {
 
   const renderContent = () => {
     switch (selectedTab) {
-      case '퇴근버어스':
+      case '퇴근버스':
         return <BusHome />;
       case '퇴근셔틀':
         return <ShuttleHome />;

@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Dimensions, GestureResponderEvent, Alert } from 'react-native';
-import { Canvas, Path, Skia, SkPath, PaintStyle, Rect, RoundedRect } from '@shopify/react-native-skia';
+import { Canvas, Path, Skia, SkPath, PaintStyle, Rect, RoundedRect, SkiaDomView } from '@shopify/react-native-skia';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import { captureRef } from 'react-native-view-shot';
 
@@ -54,8 +54,12 @@ const COLORS = [
 const STROKE_WIDTHS = [1, 5, 10, 15, 20];
 const ACTIVE_BORDER_COLOR = 'white';
 
-export default function DrawingCanvas() {
-  const router = useRouter();
+interface DrawingCanvasProps {
+  setSelectedMenu: (menu: string) => void;
+}
+
+export default function DrawingCanvas({ setSelectedMenu }: DrawingCanvasProps) {
+  const navigation = useNavigation();
   const [currentPath, setCurrentPath] = useState<SkPath | null>(null);
   const [paths, setPaths] = useState<PathWithColor[]>([]);
   const [tool, setTool] = useState<Tool>('brush');
@@ -66,7 +70,7 @@ export default function DrawingCanvas() {
   const [previousPoint, setPreviousPoint] = useState<{x: number, y: number} | null>(null);
   const [activePopover, setActivePopover] = useState<PopoverType | null>(null);
   const [backgroundColor, setBackgroundColor] = useState(CANVAS_BACKGROUND_COLOR);
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<SkiaDomView>(null);
   const captureViewRef = useRef<View>(null);
   const brushButtonRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null); 
   const eraserButtonRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null); 
@@ -197,8 +201,8 @@ export default function DrawingCanvas() {
         console.warn(`Could not delete temporary file ${tempPath}:`, deleteError);
       }
 
-      // 6. Navigate without sending the URI parameter
-      router.push('/pages/drawing');
+      // 6. Navigate back
+      setSelectedMenu('drawing');
 
     } catch (error) {
       console.error('Error capturing or saving drawing:', error);
@@ -207,7 +211,7 @@ export default function DrawingCanvas() {
   };
 
   const handleCancel = () => {
-    router.back();
+    setSelectedMenu('drawing');
   };
 
   const handleToolPress = (pressedTool: Tool) => {
@@ -320,8 +324,8 @@ export default function DrawingCanvas() {
         }}
       >
         <Canvas
-          ref={canvasRef} // Keep or remove ref based on need
-          style={styles.interactionCanvas} // Use new style for larger canvas
+          ref={canvasRef}
+          style={styles.interactionCanvas}
           onTouchStart={onDrawingStart}
           onTouchMove={onDrawingActive}
           onTouchEnd={onDrawingEnd}
@@ -332,7 +336,7 @@ export default function DrawingCanvas() {
             y={CANVAS_PADDING_VERTICAL} 
             width={canvasWidth} 
             height={canvasHeight} 
-            color={backgroundColor} // Use state variable
+            color={backgroundColor}
             r={20} 
           />
           {/* Paths are drawn relative to the interaction canvas origin */}

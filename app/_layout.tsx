@@ -8,7 +8,12 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
         }}
-      />
+      >
+        <Stack.Screen
+          name="drawingCanvas/index"
+          options={{ presentation: 'fullScreenModal' }}
+        />
+      </Stack>
     </GestureHandlerRootView>
   );
 } 

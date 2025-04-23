@@ -26,6 +26,7 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="meetreserve"/>
         <data android:scheme="com.meetreserve.app"/>
+        <data android:scheme="exp+meetreserve"/>
       </intent-filter>
     </activity>
   </application>

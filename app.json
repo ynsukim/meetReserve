@@ -4,10 +4,11 @@
     "slug": "meetReserve",
     "version": "1.0.0",
     "orientation": "landscape",
-    "icon": "./src/assets/images/app-icon/icon.png",
+    "icon": "./assets/appRelated/icon.png",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "splash": {
-      "image": "./src/assets/images/splash/splash-icon.png",
+      "image": "./assets/appRelated/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,19 +17,17 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.meetreserve.app",
-      "screenOrientation": "landscape"
+      "bundleIdentifier": "com.meetreserve.app"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/images/app-icon/adaptive-icon.png",
+        "foregroundImage": "./assets/appRelated/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.meetreserve.app",
-      "screenOrientation": "landscape"
+      "package": "com.meetreserve.app"
     },
     "web": {
-      "favicon": "./src/assets/images/app-icon/favicon.png"
+      "favicon": "./assets/appRelated/favicon.png"
     },
     "scheme": "meetreserve",
     "plugins": [
