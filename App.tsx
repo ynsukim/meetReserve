@@ -3,12 +3,12 @@ import { View, StyleSheet, Dimensions, StatusBar, Platform, Animated } from 'rea
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 
-import Navigation from './src/components/Navigation';
-import ReserveRoom from './src/screens/ReserveRoom';
-import CafeteriaMenu from './src/screens/CafeteriaMenu';
-import BusSchedule from './src/screens/BusSchedule';
-import DrawingPad from './src/screens/DrawingPad';
-import Chatbot from './src/screens/Chatbot';
+import Navigation from './components/Navigation';
+import ReserveRoom from './app/ReserveRoom';
+import CafeteriaMenu from './app/CafeteriaMenu';
+import BusSchedule from './app/BusSchedule';
+import DrawingPad from './app/DrawingPad';
+import Chatbot from './app/Chatbot';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const NAV_WIDTH = SCREEN_WIDTH * 0.25;
