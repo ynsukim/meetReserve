@@ -1,22 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, TextInput, Button, Text, ScrollView, StyleSheet } from 'react-native';
 import { askChatbot } from '../lib/chatbot';
 
 export default function ChatScreen() {
   const [input, setInput] = useState('');
-  const [response, setResponse] = useState('');
+  const [messages, setMessages] = useState<Array<{text: string, isUser: boolean}>>([]);
   const [loading, setLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleAsk = async () => {
+  useEffect(() => {
+    // Send initial prompt to chatbot when component mounts
+    if (!isInitialized) {
+      const initialPrompt = '페르소나 선택, 그리고 대화시 유지';
+      handleInitialPrompt(initialPrompt);
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
+
+  const handleInitialPrompt = async (prompt: string) => {
     setLoading(true);
     try {
-      const reply = await askChatbot(input);
-      setResponse(reply);
+      const reply = await askChatbot(prompt);
+      setMessages([{ text: reply, isUser: false }]);
     } catch (error) {
       console.error("Error calling chatbot:", error);
-      setResponse('Sorry, something went wrong.');
+      setMessages([{ text: 'Sorry, something went wrong.', isUser: false }]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Scroll to bottom when messages change or loading state changes
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  }, [messages, loading]);
+
+  const handleAsk = async () => {
+    if (!input.trim()) return;
+    
+    // Add user message
+    setMessages(prev => [...prev, { text: input, isUser: true }]);
+    setLoading(true);
+    
+    try {
+      const reply = await askChatbot(input);
+      // Add bot response
+      setMessages(prev => [...prev, { text: reply, isUser: false }]);
+    } catch (error) {
+      console.error("Error calling chatbot:", error);
+      setMessages(prev => [...prev, { text: 'Sorry, something went wrong.', isUser: false }]);
+    } finally {
+      setLoading(false);
+      setInput('');
     }
   };
 
@@ -25,8 +61,31 @@ export default function ChatScreen() {
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Chatbot</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.title}>Ask something:</Text>
+      
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
+      >
+        {messages.map((message, index) => (
+          <View 
+            key={index} 
+            style={[
+              styles.messageBubble,
+              message.isUser ? styles.userBubble : styles.botBubble
+            ]}
+          >
+            <Text style={styles.messageText}>{message.text}</Text>
+          </View>
+        ))}
+        {loading && (
+          <View style={[styles.messageBubble, styles.botBubble]}>
+            <Text style={styles.messageText}>Thinking...</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      <View style={styles.inputContainer}>
         <TextInput
           value={input}
           onChangeText={setInput}
@@ -34,11 +93,7 @@ export default function ChatScreen() {
           style={styles.input}
         />
         <Button title="Ask Bot" onPress={handleAsk} disabled={loading} />
-        {loading ? <Text style={styles.loadingText}>Thinking...</Text> : null}
-        {response ? (
-          <Text style={styles.responseText}>{response}</Text>
-        ) : null}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -46,6 +101,9 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
+    width: '80%',
+    alignSelf: 'center',
+    paddingBottom: 50,
   },
   topBar: {
     flexDirection: 'row',
@@ -60,38 +118,49 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
   },
-  contentContainer: {
-    padding: 20,
-    alignItems: 'stretch',
+  messagesContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
   },
-  title: {
-    fontSize: 20,
+  messagesContent: {
+    padding: 15,
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+  },
+  messageBubble: {
+    maxWidth: '80%',
+    padding: 20,
+    borderRadius: 20,
     marginBottom: 10,
-    color: 'black',
-    textAlign: 'center',
+  },
+  userBubble: {
+    backgroundColor: '#d2e6fc',
+    alignSelf: 'flex-end',
+  },
+  botBubble: {
+    backgroundColor: '#E5E5EA',
+    alignSelf: 'flex-start',
+  },
+  messageText: {
+    color: '#000000',
+    fontSize: 16,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
   },
   input: {
+    flex: 1,
     borderWidth: 1,
     borderColor: '#E0E0E0',
     backgroundColor: '#FFFFFF',
     padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
+    marginRight: 10,
+    borderRadius: 20,
     color: 'black',
-  },
-  loadingText: {
-    marginTop: 10,
-    textAlign: 'center',
-    color: 'gray',
-  },
-  responseText: {
-    marginTop: 20,
-    fontSize: 16,
-    color: 'black',
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
 }); 
