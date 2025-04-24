@@ -105,9 +105,29 @@ const ReserveRoom = () => {
     }
   }, [weekStart, currentTime]);
 
-  const goToPreviousWeek = () => setWeekStart(prev => subWeeks(prev, 1));
-  const goToNextWeek = () => setWeekStart(prev => addWeeks(prev, 1));
-  const goToToday = () => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const goToPreviousWeek = () => {
+    setWeekStart(prev => subWeeks(prev, 1));
+    setSelectedSlot(null);
+    setSelectionSlotActive(false);
+    setShowReservationPopup(false);
+    setShowEditPopup(false);
+  };
+  
+  const goToNextWeek = () => {
+    setWeekStart(prev => addWeeks(prev, 1));
+    setSelectedSlot(null);
+    setSelectionSlotActive(false);
+    setShowReservationPopup(false);
+    setShowEditPopup(false);
+  };
+  
+  const goToToday = () => {
+    setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    setSelectedSlot(null);
+    setSelectionSlotActive(false);
+    setShowReservationPopup(false);
+    setShowEditPopup(false);
+  };
 
   const renderTimeSlots = () => {
     const hours = [];
@@ -355,8 +375,8 @@ const ReserveRoom = () => {
     ];
   };
 
-  const formatTime = (date: Date) => {
-    return `${date.getHours()}:${date.getMinutes() === 0 ? '00' : '30'}`;
+  const formatTime = (hour: number, minute: number) => {
+    return `${hour}:${minute === 0 ? '00' : '30'}`;
   };
 
   const renderReservationContent = (reservation: Reservation) => {
@@ -371,7 +391,7 @@ const ReserveRoom = () => {
         <Text style={getReservationTextStyle(reservation)}>{reservation.name}</Text>
         {reservation.duration >= 60 && (
           <Text style={getReservationTimeStyle(reservation)}>
-            {formatTime(reservationStart)} - {formatTime(reservationEnd)}
+            {formatTime(reservation.hour, reservation.minute)} - {formatTime(reservation.hour, reservation.minute + reservation.duration)}
           </Text>
         )}
       </View>
@@ -430,19 +450,28 @@ const ReserveRoom = () => {
                     <TouchableOpacity
                       style={styles.selectedSlotContainer}
                       onPress={handleSelectionBoxPress}
-                      activeOpacity={0.6}
+                      activeOpacity={1}
                     >
-                      <View 
+                      <View
                         style={[
                           styles.selectedTimeSlot,
-                          { 
+                          {
                             height: TIME_GRID_HEIGHT * (selectedSlot.duration / 30)
                           }
-                        ]} 
+                        ]}
                       >
-                        <View style={styles.plusSignContainer}>
-                          <Text style={styles.plusSign}>+</Text>
-                        </View>
+                        <TouchableOpacity onPress={handleSelectionBoxPress} style={styles.addButton}>
+                          <MaterialCommunityIcons name="plus-circle" size={22} color="#180df5" />
+                        </TouchableOpacity>
+                        <Text style={styles.selectedTimeText}>
+                          {formatTime(selectedSlot.hour, selectedSlot.minute)}-{formatTime(calculateEndTime(selectedSlot.hour, selectedSlot.minute, selectedSlot.duration).endHour, calculateEndTime(selectedSlot.hour, selectedSlot.minute, selectedSlot.duration).endMinute)}
+                        </Text>
+                        {!showReservationPopup && (
+                          <TouchableOpacity onPress={handleClosePopup} style={styles.closeButton}>
+                             <MaterialCommunityIcons name="window-close" size={20} color="#3b3eff5c" />
+                          </TouchableOpacity>
+                        )}
+                        {showReservationPopup && <View style={styles.buttonPlaceholder} />}
                       </View>
                     </TouchableOpacity>
                   )}
@@ -509,19 +538,28 @@ const ReserveRoom = () => {
                     <TouchableOpacity
                       style={styles.selectedSlotContainer}
                       onPress={handleSelectionBoxPress}
-                      activeOpacity={0.6}
+                      activeOpacity={1}
                     >
-                      <View 
+                      <View
                         style={[
                           styles.selectedTimeSlot,
-                          { 
+                          {
                             height: TIME_GRID_HEIGHT * (selectedSlot.duration / 30)
                           }
-                        ]} 
+                        ]}
                       >
-                        <View style={styles.plusSignContainer}>
-                          <Text style={styles.plusSign}>+</Text>
-                        </View>
+                        <TouchableOpacity onPress={handleSelectionBoxPress} style={styles.addButton}>
+                          <MaterialCommunityIcons name="plus-circle" size={22} color="#180df5" />
+                        </TouchableOpacity>
+                        <Text style={styles.selectedTimeText}>
+                          {formatTime(selectedSlot.hour, selectedSlot.minute)}-{formatTime(calculateEndTime(selectedSlot.hour, selectedSlot.minute, selectedSlot.duration).endHour, calculateEndTime(selectedSlot.hour, selectedSlot.minute, selectedSlot.duration).endMinute)}
+                        </Text>
+                        {!showReservationPopup && (
+                          <TouchableOpacity onPress={handleClosePopup} style={styles.closeButton}>
+                             <MaterialCommunityIcons name="window-close" size={20} color="#3b3eff5c" />
+                          </TouchableOpacity>
+                        )}
+                        {showReservationPopup && <View style={styles.buttonPlaceholder} />}
                       </View>
                     </TouchableOpacity>
                   )}
@@ -565,6 +603,14 @@ const ReserveRoom = () => {
       {isSameDay(day, new Date()) && renderCurrentTimeIndicator()}
     </View>
   );
+
+  const calculateEndTime = (startHour: number, startMinute: number, duration: number) => {
+    const totalStartMinutes = startHour * 60 + startMinute;
+    const totalEndMinutes = totalStartMinutes + duration;
+    const endHour = Math.floor(totalEndMinutes / 60);
+    const endMinute = totalEndMinutes % 60;
+    return { endHour, endMinute };
+  }
 
   return (
     <View style={styles.container}>
@@ -841,12 +887,41 @@ const styles = StyleSheet.create({
     top: 0,
     left: MARGIN_LEFT,
     right: MARGIN_RIGHT,
-    backgroundColor: '#f5f5f5',
-    borderWidth: 1,
-    borderColor: '#4e5bf2',
-    borderRadius: 8,
+    backgroundColor: '#cfdaff',
+    borderWidth: 2,
+    borderColor: '#0216ef',
+    borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    flexDirection: 'row',
+    paddingLeft: 4,
+    paddingRight: 10,
+
+    
+  },
+  selectedTimeText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#091be6',
+    flexGrow: 1,
+    textAlign: 'left',
+    marginBottom: 2,
+  },
+  closeButton: {
+    left:3,
+    padding: 1,
+    minWidth: 30,
+    alignItems: 'center',
+  },
+  addButton: {
+     paddingLeft: 3,
+     paddingRight: 2,
+     minWidth: 30,
+     alignItems: 'center',
+  },
+  buttonPlaceholder: {
+    width: 30,
+    padding: 6,
   },
   selectedSlotContainer: {
     position: 'absolute',
@@ -857,21 +932,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 3,
-  },
-  plusSignContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#4e5bf2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  plusSign: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    lineHeight: 20,
   },
   currentTimeContainer: {
     position: 'absolute',
@@ -906,11 +966,11 @@ const styles = StyleSheet.create({
   },
   reservationSlot: {
     position: 'absolute',
-    top: 0,
+    top: -1,
     left: MARGIN_LEFT,
     right: MARGIN_RIGHT,
     borderWidth: 1,
-    borderColor: '#4e5bf2',
+    borderColor: '#bcbcbc',
     borderRadius: 8,
     padding: 4,
     justifyContent: 'center',
@@ -919,7 +979,7 @@ const styles = StyleSheet.create({
   },
   reservationText: {
     fontSize: 16,
-    color: '#333',
+    color: '#ffffff',
     textAlign: 'center',
     fontWeight: 'bold',
   },
@@ -928,7 +988,7 @@ const styles = StyleSheet.create({
   },
   reservationTimeText: {
     fontSize: 12,
-    color: '#666',
+    color: '#ffffff',
     textAlign: 'center',
     marginTop: 2,
   },
@@ -936,16 +996,16 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
   },
   pastReservation: {
-    backgroundColor: '#f0f0f0',
-    borderColor: 'rgba(102, 102, 102, 0.3)',
+    backgroundColor: '#898989',
+    borderColor: '#ffffff',
   },
   currentReservation: {
-    backgroundColor: '#4e5bf2',
-    borderColor: '#4e5bf2',
+    backgroundColor: '#1edb1e',
+    borderColor: '#ffffff',
   },
   futureReservation: {
-    backgroundColor: '#e6e9ff',
-    borderColor: 'rgba(78, 91, 242, 0.3)',
+    backgroundColor: '#77b0ff',
+    borderColor: '#ffffff',
   },
   emptySlotTouchable: {
     position: 'absolute',

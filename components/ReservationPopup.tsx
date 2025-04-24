@@ -1,8 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, StatusBar, Platform, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, StatusBar, Platform, TextInput, FlatList, Pressable, ScrollView } from 'react-native';
 import { format, isSameDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { Reservation } from '../types/reservation';
+import { saveNameToHistory, getRecentNames, deleteNameFromHistory } from '../app/services/database';
+
+// Constants for history list item height calculation
+const HISTORY_ITEM_PADDING_VERTICAL = 6;
+const HISTORY_ITEM_FONT_SIZE = 16;
+const HISTORY_ITEM_BORDER_BOTTOM_WIDTH = 1;
+const HISTORY_ITEM_HEIGHT = (HISTORY_ITEM_PADDING_VERTICAL * 2) + HISTORY_ITEM_FONT_SIZE + HISTORY_ITEM_BORDER_BOTTOM_WIDTH; // Approx height
+const HISTORY_LIST_VISIBLE_ITEMS = 4;
+const HISTORY_LIST_HEIGHT = HISTORY_ITEM_HEIGHT * HISTORY_LIST_VISIBLE_ITEMS;
 
 interface ReservationPopupProps {
   selectedSlot: {
@@ -37,22 +47,21 @@ const ReservationPopup: React.FC<ReservationPopupProps> = ({
   const inputRef = useRef<TextInput>(null);
   const [showWarning, setShowWarning] = useState(false);
   const [nextReservationTime, setNextReservationTime] = useState<string>('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [nameHistory, setNameHistory] = useState<string[]>([]);
 
-  // Reset duration when popup becomes visible
   useEffect(() => {
     if (visible) {
       setDuration(initialDuration);
     }
   }, [visible, initialDuration]);
 
-  // Calculate maximum allowed duration based on existing reservations
   const getMaxDuration = () => {
     if (!selectedSlot) return 30;
 
     const selectedTime = new Date(selectedSlot.date);
     selectedTime.setHours(selectedSlot.hour, selectedSlot.minute);
 
-    // Find the next reservation after the selected time
     const nextReservation = reservations
       .filter(res => isSameDay(res.date, selectedSlot.date))
       .sort((a, b) => {
@@ -68,13 +77,13 @@ const ReservationPopup: React.FC<ReservationPopupProps> = ({
         return resTime.getTime() > selectedTime.getTime();
       });
 
-    if (!nextReservation) return 240; // Max 4 hours if no next reservation
+    if (!nextReservation) return 240;
 
     const nextResTime = new Date(nextReservation.date);
     nextResTime.setHours(nextReservation.hour, nextReservation.minute);
-    const timeDiff = (nextResTime.getTime() - selectedTime.getTime()) / (1000 * 60); // in minutes
+    const timeDiff = (nextResTime.getTime() - selectedTime.getTime()) / (1000 * 60);
 
-    return Math.min(timeDiff, 240); // Max 4 hours
+    return Math.min(timeDiff, 240);
   };
 
   const formatDuration = (minutes: number): DurationFormat => {
@@ -97,7 +106,6 @@ const ReservationPopup: React.FC<ReservationPopupProps> = ({
       onDurationChange(newDuration);
       setShowWarning(false);
     } else if (newDuration > maxDuration) {
-      // Find the next reservation time
       const nextRes = reservations
         .filter(res => isSameDay(res.date, selectedSlot.date))
         .sort((a, b) => {
@@ -147,21 +155,17 @@ const ReservationPopup: React.FC<ReservationPopupProps> = ({
 
   useEffect(() => {
     if (visible && inputRef.current) {
-      // Small delay to ensure the popup is fully rendered
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
   }, [visible]);
 
-  if (!selectedSlot) return null;
-
   useEffect(() => {
     let originalStyle: any;
     
     if (Platform.OS === 'android') {
       if (visible) {
-        // Save original style
         originalStyle = StatusBar.pushStackEntry({
           animated: true,
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -173,17 +177,67 @@ const ReservationPopup: React.FC<ReservationPopupProps> = ({
 
     return () => {
       if (Platform.OS === 'android' && originalStyle) {
-        // Restore original style when component unmounts or visibility changes
         StatusBar.popStackEntry(originalStyle);
       }
     };
   }, [visible]);
   
-  const handleConfirm = () => {
-    if (name.trim()) {
-      onSave(name, duration);
+  const toggleHistoryList = async () => {
+    if (showHistory) {
+      setShowHistory(false);
+    } else {
+      try {
+        const recentNames = await getRecentNames();
+        setNameHistory(recentNames);
+        setShowHistory(true);
+      } catch (error) {
+        console.error('Failed to fetch name history:', error);
+      }
     }
   };
+
+  const handleSelectFromHistory = (selectedName: string) => {
+    setName(selectedName);
+    setShowHistory(false);
+  };
+
+  const handleConfirm = async () => {
+    const trimmedName = name.trim();
+    if (trimmedName) {
+      try {
+        await saveNameToHistory(trimmedName);
+      } catch (error) {
+        console.error('Failed to save name to history:', error);
+      }
+      onSave(trimmedName, duration);
+    }
+  };
+
+  // Function to handle TextInput focus - hides history
+  const handleInputFocus = () => {
+    if (showHistory) {
+      setShowHistory(false);
+    }
+  };
+
+  // Function to handle text input changes - updates name and hides history
+  const handleNameChange = (text: string) => {
+    setName(text);
+    if (showHistory) {
+      setShowHistory(false);
+    }
+  };
+
+  const handleDeleteNameFromHistory = async (nameToDelete: string) => {
+    try {
+      await deleteNameFromHistory(nameToDelete);
+      setNameHistory(currentHistory => currentHistory.filter(name => name !== nameToDelete));
+    } catch (error) { 
+      console.error('Failed to delete name from history:', error);
+    }
+  };
+
+  if (!selectedSlot) return null;
 
   return (
     <Modal
@@ -205,91 +259,148 @@ const ReservationPopup: React.FC<ReservationPopupProps> = ({
           activeOpacity={1}
           onPress={onClose}
         >
-          <TouchableOpacity 
-            style={styles.popup}
-            activeOpacity={1}
-            onPress={(event) => event.stopPropagation()}
-          >
-            <View style={styles.popupHeader}>
-              <Text style={styles.popupTitle}>회의실 예약</Text>
-            </View>
-            
-            <View style={styles.popupContentLine}>
-              <Text style={styles.popupText}>
-                회의 시각 
-              </Text>
-              <Text style={styles.popupTextBig}>
-              {format(selectedSlot.date, 'M.dd (E) ', { locale: ko })}                
-              {selectedSlot.hour}:{selectedSlot.minute === 0 ? '00' : '30'}
-              </Text>
-            </View>
-
-            <View style={styles.popupContentLineIndent}>
-              <Text style={styles.popupText}>
-                회의 시간 
-              </Text>
-              <View style={styles.durationContainer}>
-                <TouchableOpacity 
-                  style={styles.durationButton} 
-                  onPress={() => handleDurationChange(-30)}
-                >
-                  <Text style={styles.durationButtonText}>-</Text>
-                </TouchableOpacity>
-                {renderDuration()}
-                <TouchableOpacity 
-                  style={styles.durationButton} 
-                  onPress={() => handleDurationChange(30)}
-                >
-                  <Text style={styles.durationButtonText}>+</Text>
-                </TouchableOpacity>
+          <View style={styles.popupTouchArea}>
+            <TouchableOpacity 
+              style={styles.popup}
+              activeOpacity={1}
+              onPress={(event) => event.stopPropagation()}
+            >
+              <View style={styles.popupHeader}>
+                <Text style={styles.popupTitle}>회의실 예약</Text>
               </View>
-              {showWarning && (
-                <View style={styles.warningContainer}>
-                  <Text style={styles.durationWarningText}>
-                    {duration === 240 
-                      ? "최대 예약 시간은 4시간 입니다"
-                      : `${nextReservationTime} 회의 예약으로 현재 최대 시간임`}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.popupContentLine}>
-              <View style={styles.inputContainer}>
+              
+              <View style={styles.popupContentLine}>
                 <Text style={styles.popupText}>
-                  예약자 
+                  회의 시각 
                 </Text>
-                <TextInput
-                  ref={inputRef}
-                  style={[
-                    styles.popupTextInput,
-                    name ? styles.popupTextInputActive : null
-                  ]}
-                  placeholder="이름을 입력해주세요"
-                  placeholderTextColor="gray"
-                  returnKeyType="done"
-                  keyboardType="default"
-                  textContentType="name"
-                  autoCapitalize="none"
-                  value={name}
-                  onChangeText={setName}
-                />
+                <Text style={styles.popupTextBig}>
+                {format(selectedSlot.date, 'M.dd (E) ', { locale: ko })}                
+                {selectedSlot.hour}:{selectedSlot.minute === 0 ? '00' : '30'}
+                </Text>
               </View>
-            </View>
 
-            <View style={styles.popupFooter}>
-              <TouchableOpacity style={styles.popupFooterButton} onPress={onClose}>
-                <Text style={styles.closeButtonText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.popupFooterButton, !name.trim() && styles.disabledButton]} 
-                onPress={handleConfirm}
-                disabled={!name.trim()}
-              >
-                <Text style={styles.confirmButtonText}>예약</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+              <View style={styles.popupContentLineIndent}>
+                <Text style={styles.popupText}>
+                  회의 시간 
+                </Text>
+                <View style={styles.durationContainer}>
+                  <TouchableOpacity 
+                    style={styles.durationButton} 
+                    onPress={() => handleDurationChange(-30)}
+                  >
+                    <Text style={styles.durationButtonText}>-</Text>
+                  </TouchableOpacity>
+                  {renderDuration()}
+                  <TouchableOpacity 
+                    style={styles.durationButton} 
+                    onPress={() => handleDurationChange(30)}
+                  >
+                    <Text style={styles.durationButtonText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+                {showWarning && (
+                  <View style={styles.warningContainer}>
+                    <Text style={styles.durationWarningText}>
+                      {duration === 240 
+                        ? "최대 예약 시간은 4시간 입니다"
+                        : `${nextReservationTime} 회의 예약으로 현재 최대 시간임`}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.popupContentLine}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.popupText}>
+                    예약자 
+                  </Text>
+                  <View style={styles.nameInputWrapper}> 
+                    <TextInput
+                      ref={inputRef}
+                      style={[
+                        styles.popupTextInput,
+                        name ? styles.popupTextInputActive : null
+                      ]}
+                      placeholder="이름을 입력해주세요"
+                      placeholderTextColor="gray"
+                      returnKeyType="done"
+                      keyboardType="default"
+                      textContentType="name"
+                      autoCapitalize="none"
+                      value={name}
+                      onChangeText={handleNameChange}
+                      onFocus={handleInputFocus}
+                    />
+                    <TouchableOpacity onPress={toggleHistoryList} style={styles.historyButton}>
+                      <MaterialCommunityIcons 
+                        name={showHistory ? "chevron-up" : "history"} 
+                        size={24} 
+                        color="#888" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              {showHistory && (
+                <Pressable 
+                  style={[
+                    styles.historyListContainer,
+                    { height: nameHistory.length === 0 ? 50 : Math.min(nameHistory.length * HISTORY_ITEM_HEIGHT + 10, HISTORY_LIST_HEIGHT) }
+                  ]}
+                  onTouchStart={(e) => e.stopPropagation()}
+                >
+                  <ScrollView
+                    style={styles.scrollViewContainer}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    contentContainerStyle={nameHistory.length === 0 ? styles.emptyScrollContent : null}
+                    showsVerticalScrollIndicator={true}
+                    persistentScrollbar={true}
+                    bounces={false}
+                    directionalLockEnabled={true}
+                    decelerationRate="normal"
+                    scrollEventThrottle={16}
+                    onScrollBeginDrag={() => console.log("scroll begin")}
+                    onMomentumScrollBegin={() => console.log("momentum scroll begin")}
+                  >
+                    {nameHistory.length === 0 ? (
+                      <Text style={styles.historyEmptyText}>최근 사용 기록 없음</Text>
+                    ) : (
+                      nameHistory.map((item, index) => (
+                        <View style={styles.historyItemContainer}>
+                          <Pressable
+                            style={styles.historyItemSelectArea}
+                            onPress={() => handleSelectFromHistory(item)}
+                          >
+                            <Text style={styles.historyItemText}>{item}</Text>
+                          </Pressable>
+                          <TouchableOpacity 
+                            onPress={() => handleDeleteNameFromHistory(item)} 
+                            style={styles.historyItemDeleteButton}
+                          >
+                            <MaterialCommunityIcons name="close-circle" size={20} color="#aaa" />
+                          </TouchableOpacity>
+                        </View>
+                      ))
+                    )}
+                  </ScrollView>
+                </Pressable>
+              )}
+
+              <View style={styles.popupFooter}> 
+                <TouchableOpacity style={styles.popupFooterButton} onPress={onClose}>
+                  <Text style={styles.closeButtonText}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.popupFooterButton, !name.trim() && styles.disabledButton]} 
+                  onPress={handleConfirm}
+                  disabled={!name.trim()}
+                >
+                  <Text style={styles.confirmButtonText}>예약</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </View>
     </Modal>
@@ -312,6 +423,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  popupTouchArea: {
+    width: 420, // Slightly wider than popup
+    height: 520, // Taller than popup to capture touches
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent', // Invisible
+  },
   popup: {
     backgroundColor: 'white',
     borderRadius: 20,
@@ -331,7 +449,6 @@ const styles = StyleSheet.create({
     height: 50,
     borderBottomWidth: 1,
     borderBottomColor: 'lightgray',
-    // backgroundColor: 'red',
   },
   popupTitle: {
     fontSize: 20,
@@ -407,12 +524,10 @@ const styles = StyleSheet.create({
     right: 10,
     width: 220,
     alignItems: 'center',
-    // backgroundColor: '#ff000082',
   },
   durationWarningText: {
     color: 'blue',
     fontSize: 12,
-    // backgroundColor: '#ffff005c',
     textAlign: 'center',
   },
   inputContainer: {
@@ -422,14 +537,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderBottomWidth: 1,
     borderBottomColor: 'lightgray',
+    position: 'relative',
+  },
+  nameInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
   popupTextInput: {
-    width: '100%',
+    flex: 1,
     flexDirection: 'row',
     textAlign: 'right',
-    paddingRight: 50,
     color: '#000000',
     textDecorationLine: 'none',
+    marginRight: 5,
   },
   popupTextInputActive: {
     fontSize: 24,
@@ -445,7 +567,6 @@ const styles = StyleSheet.create({
     width: 80,
     padding: 10,
     marginRight: 10,
-    // backgroundColor: 'red',
     alignItems: 'center',
   },
   confirmButtonText: {
@@ -460,6 +581,68 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  historyButton: {
+    padding: 10,
+  },
+  historyListContainer: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    height: HISTORY_LIST_HEIGHT,
+    width: '60%',
+    right: 40,
+    top: 280,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  historyItemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: HISTORY_ITEM_BORDER_BOTTOM_WIDTH,
+    borderBottomColor: '#eee',
+  },
+  historyItemSelectArea: {
+    flex: 1,
+    paddingVertical: HISTORY_ITEM_PADDING_VERTICAL,
+    paddingLeft: 8,
+    paddingRight: 5,
+  },
+  historyItem: {
+    paddingVertical: HISTORY_ITEM_PADDING_VERTICAL,
+    paddingHorizontal: 8,
+    borderBottomWidth: HISTORY_ITEM_BORDER_BOTTOM_WIDTH,
+    borderBottomColor: '#eee',
+  },
+  historyItemDeleteButton: {
+    paddingVertical: HISTORY_ITEM_PADDING_VERTICAL,
+    paddingHorizontal: 8,
+  },
+  historyItemText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  scrollViewContainer: {
+    width: '100%',
+    height: '100%',
+  },
+  emptyScrollContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  historyEmptyText: {
+    padding: 15,
+    textAlign: 'center',
+    color: '#888',
   },
 });
 

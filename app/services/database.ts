@@ -23,6 +23,18 @@ export const initDatabase = async (): Promise<void> => {
       name TEXT NOT NULL
     )
   `);
+
+  // Drop the name history table if it exists to ensure schema consistency
+  await db.execAsync(`DROP TABLE IF EXISTS name_history;`);
+
+  // Create the name history table if it doesn't exist
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS name_history (
+      name TEXT NOT NULL, 
+      last_used INTEGER NOT NULL,
+      PRIMARY KEY (name) 
+    )
+  `);
 };
 
 // Save a reservation (create or update)
@@ -147,4 +159,51 @@ export const backupDatabase = async (): Promise<void> => {
 export const syncDatabase = async (): Promise<void> => {
   // This will be implemented later for syncing
   console.log('Database sync functionality will be implemented later');
+};
+
+// Save a name to history (Insert or Update)
+export const saveNameToHistory = async (name: string): Promise<void> => {
+  if (!db) await initDatabase();
+  if (!db) throw new Error('Database not initialized');
+
+  const trimmedName = name.trim();
+  if (!trimmedName) return; // Don't save empty names
+
+  await db.runAsync(
+    'INSERT INTO name_history (name, last_used) VALUES (?, ?) ' +
+    'ON CONFLICT(name) DO UPDATE SET last_used = excluded.last_used',
+    [trimmedName, Date.now()]
+  );
+  console.log(`Saved/Updated '${trimmedName}' in name history.`);
+};
+
+// Get recent names
+export const getRecentNames = async (limit: number = 10): Promise<string[]> => {
+  if (!db) await initDatabase();
+  if (!db) throw new Error('Database not initialized');
+
+  const rows = await db.getAllAsync(
+    'SELECT name FROM name_history ORDER BY last_used DESC LIMIT ?',
+    [limit]
+  );
+
+  console.log(`Fetched recent names: ${JSON.stringify(rows.map((r: any) => r.name))}`);
+  return rows.map((row: any) => row.name);
+};
+
+// Delete a name from history
+export const deleteNameFromHistory = async (nameToDelete: string): Promise<void> => {
+  if (!db) await initDatabase();
+  if (!db) throw new Error('Database not initialized');
+
+  const trimmedName = nameToDelete.trim();
+  if (!trimmedName) return; // Don't attempt to delete empty names
+
+  try {
+    await db.runAsync('DELETE FROM name_history WHERE name = ?', [trimmedName]);
+    console.log(`Deleted '${trimmedName}' from name history.`);
+  } catch (error) {
+    console.error(`Error deleting name '${trimmedName}' from history:`, error);
+    throw error; // Re-throw the error to be caught by the caller if needed
+  }
 }; 

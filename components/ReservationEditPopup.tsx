@@ -19,9 +19,20 @@ const ReservationEditPopup: React.FC<ReservationEditPopupProps> = ({
   onEdit,
   visible,
 }) => {
-  const handleDelete = () => {
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+
+  const handleDeleteRequest = () => {
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleConfirmDelete = () => {
     onDelete(reservation.id);
+    setShowDeleteConfirmation(false);
     onClose();
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirmation(false);
   };
 
   const handleEdit = () => {
@@ -54,58 +65,80 @@ const ReservationEditPopup: React.FC<ReservationEditPopupProps> = ({
             activeOpacity={1}
             onPress={(event) => event.stopPropagation()}
           >
-            <View style={styles.popupHeader}>
-              <Text style={styles.popupTitle}>예약 정보</Text>
-            </View>
-            
-            <View style={styles.popupContentLine}>
-              <Text style={styles.popupText}>
-                회의 시각 
-              </Text>
-              <Text style={styles.popupTextBig}>
-                {format(reservation.date, 'M.dd (E) ', { locale: ko })}                
-                {reservation.hour}:{reservation.minute === 0 ? '00' : '30'}
-              </Text>
-            </View>
+            {!showDeleteConfirmation ? (
+              <>
+                <View style={styles.popupHeader}>
+                  <Text style={styles.popupTitle}>예약 정보</Text>
+                </View>
+                
+                <View style={styles.popupContentLine}>
+                  <Text style={styles.popupText}>
+                    회의 시각 
+                  </Text>
+                  <Text style={styles.popupTextBig}>
+                    {format(reservation.date, 'M.dd (E) ', { locale: ko })}                
+                    {reservation.hour}:{reservation.minute === 0 ? '00' : '30'}
+                  </Text>
+                </View>
 
-            <View style={styles.popupContentLine}>
-              <Text style={styles.popupText}>
-                회의 시간 
-              </Text>
-              <Text style={styles.popupTextBig}>
-                {Math.floor(reservation.duration / 60)}시간 {reservation.duration % 60}분
-              </Text>
-            </View>
+                <View style={styles.popupContentLine}>
+                  <Text style={styles.popupText}>
+                    회의 시간 
+                  </Text>
+                  <Text style={styles.popupTextBig}>
+                    {Math.floor(reservation.duration / 60)}시간 {reservation.duration % 60}분
+                  </Text>
+                </View>
 
-            <View style={styles.popupContentLine}>
-              <Text style={styles.popupText}>
-                예약자 
-              </Text>
-              <Text style={styles.popupTextBig}>
-                {reservation.name}
-              </Text>
-            </View>
+                <View style={styles.popupContentLine}>
+                  <Text style={styles.popupText}>
+                    예약자 
+                  </Text>
+                  <Text style={styles.popupTextBig}>
+                    {reservation.name}
+                  </Text>
+                </View>
 
-            <View style={styles.popupFooter}>
-              <TouchableOpacity 
-                style={[styles.popupFooterButton, styles.deleteButton]} 
-                onPress={handleDelete}
-              >
-                <Text style={styles.deleteButtonText}>삭제</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.popupFooterButton, styles.editButton]} 
-                onPress={handleEdit}
-              >
-                <Text style={styles.editButtonText}>수정</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.popupFooterButton} 
-                onPress={onClose}
-              >
-                <Text style={styles.closeButtonText}>닫기</Text>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.popupFooter}>
+                  <TouchableOpacity 
+                    style={[styles.popupFooterButton, styles.deleteButton]} 
+                    onPress={handleDeleteRequest}
+                  >
+                    <Text style={styles.deleteButtonText}>삭제</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.popupFooterButton, styles.editButton]} 
+                    onPress={handleEdit}
+                  >
+                    <Text style={styles.editButtonText}>수정</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.popupFooterButton} 
+                    onPress={onClose}
+                  >
+                    <Text style={styles.closeButtonText}>닫기</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <View style={styles.confirmationContainer}>
+                <Text style={styles.confirmationText}>삭제 하시겠습니까?</Text>
+                <View style={styles.confirmationButtons}>
+                  <TouchableOpacity 
+                    style={[styles.confirmationButton, styles.confirmDeleteButton]} 
+                    onPress={handleConfirmDelete}
+                  >
+                    <Text style={styles.deleteButtonText}>삭제</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.confirmationButton, styles.cancelDeleteButton]} 
+                    onPress={handleCancelDelete}
+                  >
+                    <Text style={styles.closeButtonText}>취소</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </TouchableOpacity>
         </TouchableOpacity>
       </View>
@@ -167,8 +200,8 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   popupTextBig: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '500',
     color: '#333',
   },
   popupFooter: {
@@ -176,6 +209,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     margin: 20,
+    marginTop: 30,
   },
   popupFooterButton: {
     width: 80,
@@ -184,10 +218,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteButton: {
-    backgroundColor: '#ffebee',
+    backgroundColor: '#ffffff',
   },
   editButton: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#ffffff',
   },
   deleteButtonText: {
     fontSize: 18,
@@ -203,6 +237,38 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: 'black',
+  },
+  confirmationContainer: {
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmationText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  confirmationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  confirmationButton: {
+    width: 100,
+    padding: 12,
+    marginHorizontal: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  confirmDeleteButton: {
+    backgroundColor: '#ffebee',
+    borderWidth: 1,
+    borderColor: '#d32f2f',
+  },
+  cancelDeleteButton: {
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#9e9e9e',
   },
 });
 

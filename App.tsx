@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   },
   navigationContainer: {
     height: '100%',
-    // backgroundColor: 'red',
+    // backgroundColor: 'red',ekemfek
   },
   content: {
     flex: 1,

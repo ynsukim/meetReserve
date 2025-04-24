@@ -118,7 +118,7 @@ export default function ChatScreen() {
               placeholder="Type your question..."
               style={styles.input}
             />
-            <Button title="Ask Bot" onPress={handleAsk} disabled={loading} />
+            <Button title="SEND" onPress={handleAsk} disabled={loading} />
           </View>
         </>
       )}

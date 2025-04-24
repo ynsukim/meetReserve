@@ -106,11 +106,11 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuSelect, selectedMenu, onT
           <Animated.View style={[styles.header, { opacity: OpacityAnim }]}>
             <View style={styles.topMenu}>
               <TouchableOpacity style={styles.iconButton} onPress={toggleExpansion}>
-                <MaterialCommunityIcons name="arrow-collapse" size={ICON_SIZE} color="white" />
+                <MaterialCommunityIcons name="arrow-collapse" size={ICON_SIZE} color="#7b7b7b" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.iconButton}>
+              {/* <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.iconButton}>
                 <Icon name="settings" size={ICON_SIZE} color="#b4b4b4" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <View style={styles.clockContainer}>
@@ -219,16 +219,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 1,
   },
+  timeText: {
+    marginTop: 10,
+    color: '#ffffffea',
+    fontSize: 16,
+    fontWeight: '400',
+  },
   dateText: {
     color: '#ffffffb7',
     fontSize: 14,
     fontWeight: '300',
-  },
-  timeText: {
-    marginTop: 10,
-    color: 's#ffffffea',
-    fontSize: 16,
-    fontWeight: '400',
   },
   menuArea: {
     padding: ICON_SIZE*0.5,

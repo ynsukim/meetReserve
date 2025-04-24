@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   image: {
-    width: Dimensions.get('window').width,
+    width: 1200,
     height: undefined,
     aspectRatio: 1,
   },
