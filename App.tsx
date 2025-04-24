@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, StatusBar, Platform, Animated } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { View, StyleSheet, Dimensions, StatusBar, Platform } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -20,12 +20,12 @@ const Stack = createNativeStackNavigator();
 
 const App = () => {
   const [selectedMenu, setSelectedMenu] = useState<string>('reserve');
-  const contentMarginLeft = new Animated.Value(NAV_WIDTH);
 
   useEffect(() => {
     if (Platform.OS === 'android') {
       StatusBar.setTranslucent(true);
-      StatusBar.setBackgroundColor('transparent');
+      StatusBar.setBackgroundColor('#000000');
+      StatusBar.setBarStyle('dark-content');
     }
   }, []);
 
@@ -51,36 +51,36 @@ const App = () => {
   return (
     <NavigationContainer>
       <SafeAreaProvider>
-        <ExpoStatusBar style="auto" />
-        <View style={styles.container}>
-          <Navigation 
-            onMenuSelect={setSelectedMenu}
-            selectedMenu={selectedMenu}
-            onToggleExpand={(isExpanded: boolean) => {
-              Animated.timing(contentMarginLeft, {
-                toValue: isExpanded ?  120 : NAV_WIDTH,
-                duration: 300,
-                useNativeDriver: false,
-              }).start();
-            }}
-          />
-          <Animated.View style={[
-            styles.content,
-            { marginLeft: contentMarginLeft }
-          ]}>
-            {renderScreen()}
-          </Animated.View>
-        </View>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.container}>
+            <View style={styles.navigationContainer}>
+              <Navigation 
+                onMenuSelect={setSelectedMenu}
+                selectedMenu={selectedMenu}
+              />
+            </View>
+            <View style={styles.content}>
+              {renderScreen()}
+            </View>
+          </View>
+        </SafeAreaView>
       </SafeAreaProvider>
     </NavigationContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    flexDirection: 'row',
     backgroundColor: '#F1F1F1',
+  },
+  container: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  navigationContainer: {
+    height: '100%',
+    // backgroundColor: 'red',
   },
   content: {
     flex: 1,

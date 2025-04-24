@@ -6,9 +6,9 @@ import BusWork from '../components/BusWork';
 import BusStation from '../components/BusStation';
 
 type BusType = '퇴근버스' | '퇴근셔틀' | '업무버스' | '버스정류장';
-
 const BusSchedule = () => {
-  const [selectedTab, setSelectedTab] = useState<BusType>('퇴근버스');
+  const [selectedTab, setSelectedTab] = useState('퇴근버스');
+
 
   const renderContent = () => {
     switch (selectedTab) {
@@ -25,23 +25,28 @@ const BusSchedule = () => {
     }
   };
 
+
   return (
-    <View style={styles.container}>
-      <View style={styles.tabContainer}>
-        {(['퇴근버스', '퇴근셔틀', '업무버스', '버스정류장'] as BusType[]).map((tab) => (
+    <View style={[styles.container]}>
+      <View style={styles.tabBar}>
+        {['퇴근버스', '퇴근셔틀', '업무버스', '버스정류장'].map((tab) => (
           <TouchableOpacity
             key={tab}
-            style={[styles.tab, selectedTab === tab && styles.selectedTab]}
+            style={[
+              styles.tab,
+              selectedTab === tab && styles.activeTab,
+            ]}
             onPress={() => setSelectedTab(tab)}
           >
-            <Text style={[styles.tabText, selectedTab === tab && styles.selectedTabText]}>
+            <Text style={selectedTab === tab ? styles.activeTabText : styles.tabText}>
               {tab}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
-      
-      {renderContent()}
+      <View style={styles.contentArea}>
+        {renderContent()}
+      </View>
     </View>
   );
 };
@@ -49,31 +54,36 @@ const BusSchedule = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F1F1F1',
   },
-  tabContainer: {
+  tabBar: {
     flexDirection: 'row',
-    paddingVertical: 15,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingVertical: 10,
+    marginTop: 20,
+    justifyContent: 'center',
   },
   tab: {
-    flex: 1,
+    width: 130,
     alignItems: 'center',
-    paddingVertical: 10,
+    padding: 10,
   },
-  selectedTab: {
+  activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#007AFF',
+    borderBottomColor: 'black',
   },
   tabText: {
-    fontSize: 16,
-    color: '#666666',
+    color: 'black',
+    fontSize: 18,
   },
-  selectedTabText: {
-    color: '#007AFF',
+  activeTabText: {
     fontWeight: 'bold',
+    fontSize: 18,
+  },
+  contentArea: {
+    flex: 1,
+    marginRight: 20,
+    marginBottom: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
 });
 

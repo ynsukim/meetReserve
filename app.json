@@ -17,21 +17,30 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.meetreserve.app"
+      "bundleIdentifier": "com.meetreserve.app",
+      "statusBar": {
+        "backgroundColor": "#000000",
+        "barStyle": "dark-content"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/appRelated/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.meetreserve.app"
+      "package": "com.meetreserve.app",
+      "statusBar": {
+        "backgroundColor": "#000000",
+        "barStyle": "dark-content"
+      }
     },
     "web": {
       "favicon": "./assets/appRelated/favicon.png"
     },
     "scheme": "meetreserve",
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-sqlite"
     ]
   }
 }

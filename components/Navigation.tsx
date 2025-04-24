@@ -1,22 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Easing } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import SettingsModal from './SettingsModal';
 import AnalogClock from './AnalogClock';
 
 const menuItems = [
-  { id: 'reserve', name: 'Reserve Room', icon: 'event' },
-  { id: 'cafeteria', name: 'Cafeteria Menu', icon: 'restaurant' },
-  { id: 'bus', name: 'Bus Schedule', icon: 'directions-bus' },
-  { id: 'drawing', name: 'Drawing Pad', icon: 'brush' },
-  { id: 'chatbot', name: 'Chatbot', icon: 'chat' },
+  { id: 'reserve', name: 'Reserve Room', icon: 'calendar-month', iconType: 'MaterialCommunityIcons' },
+  { id: 'cafeteria', name: 'Cafeteria Menu', icon: 'restaurant', iconType: 'MaterialIcons' },
+  { id: 'bus', name: 'Bus Schedule', icon: 'directions-bus', iconType: 'MaterialIcons' },
+  { id: 'drawing', name: 'Drawing Pad', icon: 'palette', iconType: 'MaterialCommunityIcons' },
+  { id: 'chatbot', name: 'Chatbot', icon: 'chat-processing-outline', iconType: 'MaterialCommunityIcons' },
 ];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const ICON_SIZE = 24;
+const ICON_SIZE = 20;
 const NAV_WIDTH = SCREEN_WIDTH * 0.2;
-const NAV_HEIGHT = ((ICON_SIZE * 3 + ICON_SIZE * 0.25) * menuItems.length) + ICON_SIZE*2;
+const NAV_HEIGHT = ((ICON_SIZE * 3 + ICON_SIZE * 0.25) * menuItems.length) + ICON_SIZE*1;
 
 interface NavigationProps {
   onMenuSelect: (menuId: string) => void;
@@ -28,7 +29,6 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuSelect, selectedMenu, onT
   const [isExpanded, setIsExpanded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [highlightPosition, setHighlightPosition] = useState(0);
 
   const NAV_WIDTHAnim = useRef(new Animated.Value(NAV_WIDTH)).current;
   const NAV_RadiusAnim = useRef(new Animated.Value(0)).current;
@@ -37,7 +37,6 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuSelect, selectedMenu, onT
   const iconHeightAnim = useRef(new Animated.Value(ICON_SIZE*2.5)).current;
   const OpacityAnim = useRef(new Animated.Value(1)).current;
   const RevOpacityAnim = useRef(new Animated.Value(0)).current;
-  const highlightAnim = useRef(new Animated.Value(0)).current;
 
   const toggleExpansion = () => {
     setIsExpanded(!isExpanded);
@@ -85,14 +84,6 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuSelect, selectedMenu, onT
   };
 
   const handleMenuSelect = (menuId: string) => {
-    const index = menuItems.findIndex(item => item.id === menuId);
-    const newPosition = index * (ICON_SIZE * 2.5 + 8)-(ICON_SIZE*5.5); // 8 is marginBottom from menuTouchArea
-    Animated.spring(highlightAnim, {
-      toValue: newPosition,
-      useNativeDriver: false,
-      tension: 100,
-      friction: 50,
-    }).start();
     onMenuSelect(menuId);
   };
 
@@ -112,20 +103,19 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuSelect, selectedMenu, onT
           height: NAV_HeightAnim, 
           borderRadius: NAV_RadiusAnim 
         }]}>
-
           <Animated.View style={[styles.header, { opacity: OpacityAnim }]}>
             <View style={styles.topMenu}>
               <TouchableOpacity style={styles.iconButton} onPress={toggleExpansion}>
-                <Icon name="menu" size={ICON_SIZE} color="white" />
+                <MaterialCommunityIcons name="arrow-collapse" size={ICON_SIZE} color="white" />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.iconButton}>
-                <Icon name="settings" size={ICON_SIZE} color="white" />
+                <Icon name="settings" size={ICON_SIZE} color="#b4b4b4" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.clockContainer}>
               <AnalogClock size={140} color="white" />
-              <Text style={styles.dateText}>
+              <Text style={styles.timeText}>
                 {currentTime.toLocaleTimeString('en-US', {
                   hour: 'numeric',
                   minute: 'numeric',
@@ -142,37 +132,34 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuSelect, selectedMenu, onT
             </View>
           </Animated.View>
 
-          <View style={styles.menuArea}>
-          
+          <View style={[styles.menuArea]}>
             <Animated.View style={[styles.iconButton, { 
               height: iconHeightAnim, 
               opacity: RevOpacityAnim, 
               margin: ICON_SIZE*0.25 
             }]}>
               <TouchableOpacity style={styles.iconButton} onPress={toggleExpansion}>
-                <Icon name="menu" size={ICON_SIZE} color="white" />
+                <MaterialCommunityIcons name="arrow-expand" size={16} color="#ffffff91" />
               </TouchableOpacity>
             </Animated.View>
-
-            <Animated.View 
-              style={[
-                styles.highlight,
-                {
-                  transform: [{ translateY: highlightAnim }],
-                  opacity: OpacityAnim
-                }
-              ]} 
-            />
 
             {menuItems.map((item) => (
               <TouchableOpacity
                 key={item.id}
-                style={styles.menuTouchArea}
+                activeOpacity={0.7}
+                style={[
+                  styles.menuTouchArea,
+                  item.id === selectedMenu && styles.selectedMenuItem
+                ]}
                 onPress={() => handleMenuSelect(item.id)}
               >
                 <Animated.View style={styles.menuItemContent}>
                   <View style={styles.iconButton}>
-                    <Icon name={item.icon} size={ICON_SIZE} color="white" />
+                    {item.iconType === 'MaterialCommunityIcons' ? (
+                      <MaterialCommunityIcons name={item.icon} size={ICON_SIZE} color="white" />
+                    ) : (
+                      <Icon name={item.icon} size={ICON_SIZE} color="white" />
+                    )}
                   </View>
                   <View style={[styles.menuTextContainer, { display: isExpanded ? 'none' : 'flex' }]}>
                     <Text style={styles.menuText}>
@@ -188,26 +175,25 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuSelect, selectedMenu, onT
         </Animated.View>
       </Animated.View>
 
-      <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)}
-      />
+      <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} />
     </>
   );
 };
 
 const styles = StyleSheet.create({
   navigation: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
+
     zIndex: 1000,
     justifyContent: 'center',
     height: SCREEN_HEIGHT,
+    
   },
   bgPanel: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'black',
     overflow: 'hidden',
     justifyContent: 'center',
     flexDirection: 'column',
+    paddingBottom: ICON_SIZE*0.25,
   },
   iconButton: {
     width: ICON_SIZE*2,
@@ -215,28 +201,34 @@ const styles = StyleSheet.create({
     borderRadius: ICON_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
+    // backgroundColor: 'red',
   },
   header: {
     flex: 1,
     alignContent: 'flex-start',
-    paddingTop: 20,
+    // backgroundColor: 'green',
   },
   topMenu: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 8,
+    paddingHorizontal: 8,
   },
   clockContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: 1,
   },
   dateText: {
-    color: 'white',
+    color: '#ffffffb7',
+    fontSize: 14,
+    fontWeight: '300',
+  },
+  timeText: {
+    marginTop: 10,
+    color: 's#ffffffea',
     fontSize: 16,
-    marginTop: 4,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   menuArea: {
     padding: ICON_SIZE*0.5,
@@ -250,6 +242,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     overflow: 'hidden',
   },
+  selectedMenuItem: {
+    backgroundColor: '#0867ff',
+  },
   menuItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -257,7 +252,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuTextContainer: {
-    // backgroundColor: 'red',
     padding: 4,
     borderRadius: 4,
     flex: 1,
@@ -270,15 +264,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     flex: 1,
-  },
-  highlight: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: ICON_SIZE * 2.5,
-    backgroundColor: '#3612ff',
-    borderRadius: ICON_SIZE * 1.5,
-    zIndex: -1,
+    // backgroundColor: 'blue',
   },
 });
 
